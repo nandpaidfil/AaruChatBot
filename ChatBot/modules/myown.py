@@ -16,7 +16,7 @@ async def send_hug(client, message):
             await client.send_animation(
                 chat_id=message.chat.id,
                 animation=hug_url,
-                caption="Aaru ka ek special hug 🤗💕",
+                caption="Maahira ka ek special hug 🤗💕",
                 reply_to_message_id=reply_id
             )
         else:
