@@ -38,7 +38,7 @@ async def send_kiss(client, message):
             await client.send_animation(
                 chat_id=message.chat.id,
                 animation=kiss_url,
-                caption="Aaru ka pyaara kiss 😘💕",
+                caption="Mahira ka pyaara kiss 😘💕",
                 reply_to_message_id=reply_id
             )
         else:
