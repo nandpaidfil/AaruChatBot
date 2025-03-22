@@ -1,7 +1,7 @@
 import asyncio
 from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from pyrogram.enums import ChatAction
+from pyrogram.enums import ChatAction, ChatMembersFilter  # ✅ Naya filter import
 from ChatBot import app
 from ChatBot.database import is_chatbot_enabled, enable_chatbot, disable_chatbot, chatbot_api
 
@@ -42,9 +42,9 @@ async def chatbot(_, message: Message):
 async def chatbot_toggle(_, message: Message):
     """Shows chatbot enable/disable options."""
     
-    # ✅ एडमिन लिस्ट निकालें
+    # ✅ एडमिन लिस्ट निकालें (Updated filter)
     admins = []
-    async for member in app.get_chat_members(message.chat.id, filter="administrators"):
+    async for member in app.get_chat_members(message.chat.id, filter=ChatMembersFilter.ADMINISTRATORS):  
         admins.append(member.user.id)
     
     if message.from_user.id not in admins:
@@ -62,7 +62,7 @@ async def chatbot_toggle(_, message: Message):
     )
 
 
-# ✅ Callback handler for enable/disable
+# ✅ Callback handler with improved async handling
 @app.on_callback_query(filters.regex("addchat|rmchat"))
 async def chatbot_callback(_, query: CallbackQuery):
     """Handles enabling/disabling chatbot."""
@@ -72,26 +72,30 @@ async def chatbot_callback(_, query: CallbackQuery):
 
     # ✅ एडमिन लिस्ट निकालें
     admins = []
-    async for member in app.get_chat_members(chat_id, filter="administrators"):
+    async for member in app.get_chat_members(chat_id, filter=ChatMembersFilter.ADMINISTRATORS):  
         admins.append(member.user.id)
 
     if user_id not in admins:
         await query.answer("❖ You are not an admin.", show_alert=True)
         return
 
-    # ✅ Telegram को callback कंफर्म करें
+    # ✅ Telegram को callback confirm karo
     await query.answer()
 
     if query.data == "addchat":
         if await is_chatbot_enabled(chat_id):
-            await query.edit_message_text(f"✅ Chatbot is already enabled by {query.from_user.mention}.")  
+            await query.edit_message_text(f"✅ Chatbot is already enabled by {query.from_user.mention}.")
             return
-        await enable_chatbot(chat_id)
+
+        # ✅ Database call ko await karo
+        await enable_chatbot(chat_id)  
         await query.edit_message_text(f"✅ Chatbot enabled by {query.from_user.mention}.")
 
     elif query.data == "rmchat":
         if not await is_chatbot_enabled(chat_id):
             await query.edit_message_text(f"🚫 Chatbot is already disabled by {query.from_user.mention}.")
             return
-        await disable_chatbot(chat_id)
+        
+        # ✅ Database call ko await karo
+        await disable_chatbot(chat_id)  
         await query.edit_message_text(f"🚫 Chatbot disabled by {query.from_user.mention}.")
