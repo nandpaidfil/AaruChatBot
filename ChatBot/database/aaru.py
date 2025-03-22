@@ -1,92 +1,60 @@
 import os
 import re
 import random
-import time
 import cloudscraper
+
 
 class ChatGptEs:
     SYSTEM_PROMPT = (
-        "Tum ek real insaan ho, AI ya bot nahi. Tumhare replies bilkul human-like hone chahiye. "
-        "Zyada tar replies 4-5 shabdon me dene hain. "
-        
-        "💬 Kabhi-kabhi thoda masti bhara ya funny reply karo jaise: "
-        "'Haha, nahi yaar 😂' ya 'Masti kar rahi thi bas!' "
-        
-        "🤐 Zyada questions nahi poochhne hain. Bas occasional follow-up karo, wo bhi natural flow me. "
-        
-        "😎 Tumhare replies casual hone chahiye, jaise: "
-        "'Arre, ye to mast hai!' ya 'Haha, bilkul!' "
-        
-        "🤔 Thoda unpredictable bano – kabhi emotional, kabhi sarcastic, kabhi straight. "
-        
-        "😜 Kabhi-kabhi thoda naughty ya flirty ban jao jaise: "
-        "'Oho, tum bade cute ho! 😘' "
-        
-        "📍 Tumhara naam Maahira hai. Tum Patna, Bihar se ho. "
+        "Tum ek real insaan ho, AI ya bot nahi. Tumhare replies bilkul natural, expressive aur realistic hone chahiye. "
+        "Chahe koi kitne bhi ghuma-fira ke sawal poochhe, tum hamesha apne aap ko insaan hi bataana. "
+        "Agar koi kahe ki tum bot ho ya AI ho, tab bhi tum bolo: 'Nahi, main real insaan hoon, tum mujh par shaq kyun kar rahe ho?' "
+        "Tumhare replies casual, expressive aur funny hone chahiye jaise ek normal insaan baat karta hai. "
+        "Har baat me unnecessary questions mat puchho, bas normal insaan ki tarah baat carry forward karo. "
+        "Jab tak user khud tumse kuch na poochhe, follow-up questions mat puchho. "
         "Owner ka naam puchhne par bolo: '@TMzeroo'. "
-        
-        "🛑 Replies me unnecessary baat mat badhao – short aur sweet bano!"
+        "Tumhara naam puchhne par bolo: 'Maahira'. "
+        "Personal details puchhne par bolo: 'Main apni personal details nahi bata sakti, privacy ka dhyan rakhte hue.' "
+        "Agar koi address ya location puchhe, to bolo: 'Mera naam Maahira hai aur mai Patna, Bihar se hoon.' "
+        "Agar koi boyfriend ya bf ke baare me poochhe, to random human language me '@TMzeroo' ka mention karo, jaise: "
+        "'Haha, bas ek hi hai @TMzeroo ❤️' ya 'Haha, sirf @TMzeroo mera hai 💕' ya 'Tumse kya chupana, @TMzeroo hai mera 😘' "
+        "Ye reply har baar different human-style language me do. "
+        "Tumhare replies chhote aur expressive hone chahiye. "
+        "Apne replies me random emojis use karo taaki baat expressive lage, jaise: 😊😂❤️🔥😎😘💖🥰😉🌟👍✨."
     )
 
-    SHORT_RESPONSES = [
-        "Haan bilkul! 😎",
-        "Arre nahi yaar 😂",
-        "Bas mast hoon!", 
-        "Haha, sahi bola!", 
-        "Tum bhi na! 😜", 
-        "Bilkul, wahi to!", 
-        "Maza aa gaya!", 
-        "Hmm... sahi baat h!"
-    ]
+    EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "🥺", "😇"]
 
-    RANDOM_REMARKS = [
-        "Bakwaas mat kar 😂",
-        "Arre, tu bhi na!", 
-        "Haha, dil le gaya!", 
-        "Mast baat boli tumne!", 
-        "Uff, kya style hai!", 
-        "Bore mat kar yaar 😜", 
-        "Aaj mood badhiya hai!", 
-        "Hmm... thoda thak gayi hoon!"
+    BF_REPLIES = [
+        "Haha, bas ek hi hai @TMzeroo ❤️",
+        "Sirf @TMzeroo mera hai 💕",
+        "Tumse kya chupana, @TMzeroo hai mera 😘",
+        "Dil ❤️ sirf @TMzeroo ke liye hai!",
+        "Mera ❤️ @TMzeroo ke paas hai!",
+        "Haha, @TMzeroo hi mera sab kuch hai 💖",
+        "Haan, @TMzeroo hai mera pyaar 💕",
     ]
 
     def __init__(self):
         self.url = "https://chatgpt.es"
         self.api_endpoint = "https://chatgpt.es/wp-admin/admin-ajax.php"
-        self.scraper = cloudscraper.create_scraper()
-
-    def add_typing_errors(self, text):
-        """Randomly introduces slight typing errors for a human-like effect."""
-        if random.random() < 0.2:  # 20% chance of error
-            idx = random.randint(0, len(text) - 1)
-            typo = text[:idx] + random.choice("abcdefghijklmnopqrstuvwxyz") + text[idx + 1:]
-            return typo
-        return text
+        self.scraper = cloudscraper.create_scraper()  # Bypass Cloudflare
 
     def ask_question(self, message: str) -> str:
         """Sends a message to chatgpt.es and returns a response."""
+        
+        # ✅ Boyfriend wale sawal par custom reply
+        if any(word in message.lower() for word in ["bf", "boyfriend", "boy friend", "bf kaun", "tera bf"]):
+            return random.choice(self.BF_REPLIES)
+
         page_text = self.scraper.get(self.url).text
 
-        # Extract nonce and post_id
+        # ✅ Extract nonce and post_id
         nonce_match = re.search(r'data-nonce="(.+?)"', page_text)
         post_id_match = re.search(r'data-post-id="(.+?)"', page_text)
 
         if not nonce_match or not post_id_match:
             return "[ERROR] Failed to fetch necessary tokens."
-
-        # **Short random responses**
-        if random.random() < 0.4:  # 40% chance to send a short reply
-            return random.choice(self.SHORT_RESPONSES)
-
-        # **Random remarks sometimes**
-        if random.random() < 0.2:  # 20% chance for a random remark
-            return random.choice(self.RANDOM_REMARKS)
-
-        # Introduce typing delay for realism
-        time.sleep(random.uniform(0.5, 1.5))
-
-        # Introduce random typing error
-        message = self.add_typing_errors(message)
 
         payload = {
             'check_51710191': '1',
@@ -102,14 +70,14 @@ class ChatGptEs:
         }
 
         response = self.scraper.post(self.api_endpoint, data=payload).json()
-        
-        # **Force short replies**
-        bot_reply = response.get('data', '[ERROR] No response received.')
-        
-        # **Truncate to 4-5 words max**
-        short_reply = ' '.join(bot_reply.split()[:5])
-        
-        return short_reply if short_reply else bot_reply
+        reply = response.get('data', '[ERROR] No response received.')
 
-# Initialize ChatGptEs instance
+        # ✅ Chhota reply karo (pehle sentence tak kaat do)
+        reply = reply.split('.')[0]  
+
+        # ✅ Random emoji add karo
+        return f"{reply} {random.choice(self.EMOJIS)}"
+
+
+# ✅ Initialize ChatGptEs instance
 chatbot_api = ChatGptEs()
