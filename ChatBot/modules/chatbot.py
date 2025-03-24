@@ -29,7 +29,6 @@ async def chatbot(_, message: Message):
     """Replies in DM always and in groups based on toggle."""
     chat_id = message.chat.id
 
-    # ✅ DM me hamesha reply karega
     if message.chat.type == "private" or await is_chatbot_enabled(chat_id) or message.mentioned:
         await app.send_chat_action(chat_id, ChatAction.TYPING)
         reply = chatbot_api.ask_question(message.text)
@@ -50,27 +49,26 @@ async def chatbot_toggle(_, message: Message):
         await message.reply_text("❖ You are not an admin.")
         return
 
+    # ✅ Button with toggle options
+    is_enabled = await is_chatbot_enabled(message.chat.id)
+    btn_text = "🚫 Disable" if is_enabled else "✅ Enable"
+    btn_callback = f"rmchat_{message.chat.id}" if is_enabled else f"addchat_{message.chat.id}"
+
     await message.reply_text(
-        "❖ Choose an option to enable/disable chatbot.",
+        f"❖ Chatbot is currently {'enabled' if is_enabled else 'disabled'}.",
         reply_markup=InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("✅ Enable", callback_data=f"addchat_{message.chat.id}"),
-                InlineKeyboardButton("🚫 Disable", callback_data=f"rmchat_{message.chat.id}"),
-            ]
+            [InlineKeyboardButton(btn_text, callback_data=btn_callback)]
         ]),
     )
 
 
-# ✅ Callback handler with admin check
+# ✅ Callback handler with toggle system
 @app.on_callback_query(filters.regex(r"^(addchat|rmchat)_"))
 async def chatbot_callback(_, query: CallbackQuery):
     """Handles enabling/disabling chatbot in groups."""
     
     chat_id = int(query.data.split("_")[1])
     user_id = query.from_user.id
-
-    # ✅ Confirm callback instantly
-    await query.answer()
 
     try:
         # ✅ Admin check
@@ -82,23 +80,44 @@ async def chatbot_callback(_, query: CallbackQuery):
             await query.answer("❖ You are not an admin.", show_alert=True)
             return
 
-        # ✅ Toggle system with database handling
+        # ✅ Toggle system with button intact
         if "addchat" in query.data:
             if await is_chatbot_enabled(chat_id):
-                await query.edit_message_text(f"✅ Chatbot is already enabled by {query.from_user.mention}.")
+                await query.message.edit_text(
+                    f"✅ Chatbot is already enabled by {query.from_user.mention}.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🚫 Disable", callback_data=f"rmchat_{chat_id}")]
+                    ])
+                )
             else:
                 await enable_chatbot(chat_id)
-                await asyncio.sleep(0.3)
-                await query.edit_message_text(f"✅ Chatbot enabled by {query.from_user.mention}.")
+                await query.message.edit_text(
+                    f"✅ Chatbot enabled by {query.from_user.mention}.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🚫 Disable", callback_data=f"rmchat_{chat_id}")]
+                    ])
+                )
         
         elif "rmchat" in query.data:
             if not await is_chatbot_enabled(chat_id):
-                await query.edit_message_text(f"🚫 Chatbot is already disabled by {query.from_user.mention}.")
+                await query.message.edit_text(
+                    f"🚫 Chatbot is already disabled by {query.from_user.mention}.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("✅ Enable", callback_data=f"addchat_{chat_id}")]
+                    ])
+                )
             else:
                 await disable_chatbot(chat_id)
-                await asyncio.sleep(0.3)
-                await query.edit_message_text(f"🚫 Chatbot disabled by {query.from_user.mention}.")
-    
+                await query.message.edit_text(
+                    f"🚫 Chatbot disabled by {query.from_user.mention}.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("✅ Enable", callback_data=f"addchat_{chat_id}")]
+                    ])
+                )
+
+        # ✅ Callback confirm karo button ko refresh karne ke liye
+        await query.answer()
+
     except Exception as e:
-        # ✅ Error handling
         await query.message.edit_text(f"❖ Error: {str(e)}")
+        await query.answer()
