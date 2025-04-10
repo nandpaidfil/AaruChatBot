@@ -85,42 +85,25 @@ async def chatbot_callback(_, query: CallbackQuery):
 
         # ✅ Toggle system with button intact
         if "addchat" in query.data:
-            if await is_chatbot_enabled(chat_id):
-                await query.message.edit_text(
-                    f"✅ Chatbot is already enabled by {query.from_user.mention}.",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🚫 Disable", callback_data=f"rmchat_{chat_id}")]
-                    ])
-                )
-            else:
-                await enable_chatbot(chat_id)
-                await query.message.edit_text(
-                    f"✅ Chatbot enabled by {query.from_user.mention}.",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🚫 Disable", callback_data=f"rmchat_{chat_id}")]
-                    ])
-                )
+            await enable_chatbot(chat_id)
+            await query.message.edit_text(
+                f"✅ Chatbot enabled by {query.from_user.mention}.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🚫 Disable", callback_data=f"rmchat_{chat_id}")]
+                ])
+            )
         
         elif "rmchat" in query.data:
-            if not await is_chatbot_enabled(chat_id):
-                await query.message.edit_text(
-                    f"🚫 Chatbot is already disabled by {query.from_user.mention}.",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("✅ Enable", callback_data=f"addchat_{chat_id}")]
-                    ])
-                )
-            else:
-                await disable_chatbot(chat_id)
-                await query.message.edit_text(
-                    f"🚫 Chatbot disabled by {query.from_user.mention}.",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("✅ Enable", callback_data=f"addchat_{chat_id}")]
-                    ])
-                )
+            await disable_chatbot(chat_id)
+            await query.message.edit_text(
+                f"🚫 Chatbot disabled by {query.from_user.mention}.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("✅ Enable", callback_data=f"addchat_{chat_id}")]
+                ])
+            )
 
-        # ✅ Callback confirm karo button ko refresh karne ke liye
+        # ✅ Callback confirm karo
         await query.answer()
 
     except Exception as e:
-        await query.message.edit_text(f"❖ Error: {str(e)}")
-        await query.answer()
+        await query.answer(f"❖ Error: {str(e)}", show_alert=True)
