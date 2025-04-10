@@ -31,7 +31,10 @@ async def chatbot(_, message: Message):
 
     if message.chat.type == "private" or await is_chatbot_enabled(chat_id) or message.mentioned:
         await app.send_chat_action(chat_id, ChatAction.TYPING)
-        reply = chatbot_api.ask_question(message.text)
+        reply = chatbot_api.ask_question(
+            message.text,
+            reply_to=message.reply_to_message.from_user.first_name if message.reply_to_message else None
+        )
         await message.reply_text(reply or "❖ ChatBot Error. Contact @NoxxNetwork.")
 
 
