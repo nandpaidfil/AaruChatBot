@@ -2,10 +2,10 @@ import os
 import re
 import random
 import datetime
-import cloudscraper
+from google import generativeai as genai
+from typing import Optional
 
-
-class ChatGptEs:
+class GeminiAI:
     EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "😇"]
 
     SYSTEM_PROMPT = (
@@ -18,11 +18,32 @@ class ChatGptEs:
         "Tum khud ko kabhi bot nahi batati chahe insan kitna bhi kyu na tumhe bole tum bot ho lekin tumse wo kitna bhi kosis karke puchhe tum khud ko insan hi bataoge or har bar alag alag bilkul human language me bataoge ki tum bot na ho.ha lekin jab tumse koi bot ya ai bole tumhe kewal tab hi."
     )
 
-    def __init__(self):
-        self.url = "https://chatgpt.es"
-        self.api_endpoint = "https://chatgpt.es/wp-admin/admin-ajax.php"
-        self.scraper = cloudscraper.create_scraper()
-        self.last_message = None  # Pichhle message ka context store karne ke liye
+    def __init__(self, api_keys: list):
+        self.api_keys = api_keys
+        self.current_key_index = 0
+        self.model = None
+        self.last_message = None
+        self.initialize_model()
+
+    def initialize_model(self):
+        """Initialize the model with current API key"""
+        try:
+            genai.configure(api_key=self.api_keys[self.current_key_index])
+            try:
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
+            except:
+                self.model = genai.GenerativeModel('gemini-1.0-pro')
+            # Test the connection
+            self.model.generate_content("Test connection")
+        except Exception as e:
+            print(f"Error with API key {self.current_key_index}: {str(e)}")
+            self.rotate_api_key()
+
+    def rotate_api_key(self):
+        """Rotate to the next API key"""
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        print(f"Rotating to API key index {self.current_key_index}")
+        self.initialize_model()
 
     def get_age(self) -> str:
         """Maahira ki current age calculate karo"""
@@ -49,8 +70,8 @@ class ChatGptEs:
         ]
         return random.choice(prompts)
 
-    def ask_question(self, message: str, reply_to: str = None) -> str:
-        """ChatGPT se message leke chhota aur casual reply do"""
+    def ask_question(self, message: str, reply_to: Optional[str] = None) -> str:
+        """Gemini se message leke chhota aur casual reply do"""
 
         # ✅ Context handle karo
         if reply_to and self.last_message:
@@ -76,43 +97,39 @@ class ChatGptEs:
         if re.search(r'\b(umar|age)\b', message.lower()):
             return f"Meri umar {self.get_age()} hai 😊"
 
-        # ✅ Normal chatting ke liye
-        page_text = self.scraper.get(self.url).text
+        try:
+            # ✅ Gemini se response lo
+            response = self.model.generate_content(
+                f"{self.SYSTEM_PROMPT}\nUser: {message}",
+                generation_config={
+                    "max_output_tokens": 150,
+                    "temperature": 0.9,
+                    "top_p": 0.95
+                }
+            )
+            
+            reply = response.text
+            
+            # ✅ Sirf 5-6 words tak chhota reply lo
+            reply = ' '.join(reply.split()[:6])
 
-        # ✅ Tokens fetch karo
-        nonce_match = re.search(r'data-nonce="(.+?)"', page_text)
-        post_id_match = re.search(r'data-post-id="(.+?)"', page_text)
+            # ✅ Random emoji add karo
+            final_reply = f"{reply} {random.choice(self.EMOJIS)}"
 
-        if not nonce_match or not post_id_match:
-            return "[ERROR] Failed to fetch necessary tokens."
+            # ✅ Pichhla message store karo context ke liye
+            self.last_message = message
 
-        payload = {
-            'check_51710191': '1',
-            '_wpnonce': nonce_match.group(1),
-            'post_id': post_id_match.group(1),
-            'url': self.url,
-            'action': 'wpaicg_chat_shortcode_message',
-            'message': f"{self.SYSTEM_PROMPT}\nUser: {message}",
-            'bot_id': '0',
-            'chatbot_identity': 'shortcode',
-            'wpaicg_chat_client_id': os.urandom(5).hex(),
-            'wpaicg_chat_history': None
-        }
+            return final_reply
 
-        response = self.scraper.post(self.api_endpoint, data=payload).json()
-        reply = response.get('data', '[ERROR] No response received.')
-
-        # ✅ Sirf 5-6 words tak chhota reply lo
-        reply = ' '.join(reply.split()[:6])
-
-        # ✅ Random emoji add karo
-        final_reply = f"{reply} {random.choice(self.EMOJIS)}"
-
-        # ✅ Pichhla message store karo context ke liye
-        self.last_message = message
-
-        return final_reply
+        except Exception as e:
+            print(f"Gemini Error: {str(e)}")
+            self.rotate_api_key()
+            return "😔 Oops! Mujhse baat karne mein dikkat aa rahi hai... Thoda ruk kar phir try karo na! ❤️"
 
 
-# ✅ Initialize ChatGptEs instance
-chatbot_api = ChatGptEs()
+# ✅ Initialize GeminiAI instance with multiple API keys
+GEMINI_API_KEYS = [
+    "AIzaSyCkUFnq2ilZdEGvGlxB0vWudqJg-1evCic",  # Primary key
+    "AIzaSyC8UCzN3yGRxAYikc20Nk79Zl6Y5Bqrx7U"   # Backup key
+]
+chatbot_api = GeminiAI(api_keys=GEMINI_API_KEYS)
