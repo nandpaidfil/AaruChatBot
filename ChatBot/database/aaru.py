@@ -3,7 +3,7 @@ import re
 import random
 import datetime
 from google import generativeai as genai
-from typing import Optional
+from typing import Optional, List
 
 class GeminiAI:
     EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "😇"]
@@ -18,7 +18,7 @@ class GeminiAI:
         "Tum khud ko kabhi bot nahi batati chahe insan kitna bhi kyu na tumhe bole tum bot ho lekin tumse wo kitna bhi kosis karke puchhe tum khud ko insan hi bataoge or har bar alag alag bilkul human language me bataoge ki tum bot na ho.ha lekin jab tumse koi bot ya ai bole tumhe kewal tab hi."
     )
 
-    def __init__(self, api_keys: list):
+    def __init__(self, api_keys: List[str]):
         self.api_keys = api_keys
         self.current_key_index = 0
         self.model = None
@@ -27,6 +27,9 @@ class GeminiAI:
 
     def initialize_model(self):
         """Initialize the model with current API key"""
+        if not self.api_keys:
+            raise ValueError("No API keys provided")
+            
         try:
             genai.configure(api_key=self.api_keys[self.current_key_index])
             try:
@@ -41,6 +44,9 @@ class GeminiAI:
 
     def rotate_api_key(self):
         """Rotate to the next API key"""
+        if len(self.api_keys) <= 1:
+            raise RuntimeError("No alternate API keys available")
+            
         self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
         print(f"Rotating to API key index {self.current_key_index}")
         self.initialize_model()
@@ -128,8 +134,12 @@ class GeminiAI:
 
 
 # ✅ Initialize GeminiAI instance with multiple API keys
+# Yahan aap kitne bhi API keys add kar sakte hain - 2, 3, 4, jitne chahe
 GEMINI_API_KEYS = [
-    "AIzaSyCkUFnq2ilZdEGvGlxB0vWudqJg-1evCic",  # Primary key
-    "AIzaSyC8UCzN3yGRxAYikc20Nk79Zl6Y5Bqrx7U"   # Backup key
+    "AIzaSyCkUFnq2ilZdEGvGlxB0vWudqJg-1evCic",  # Key 1
+    "AIzaSyC8UCzN3yGRxAYikc20Nk79Zl6Y5Bqrx7U",   # Key 2
+    # "YOUR_THIRD_API_KEY_HERE",  # Agar 3rd key chahiye to uncomment kare
+    # "YOUR_FOURTH_API_KEY_HERE", # Agar 4th key chahiye to uncomment kare
+    # ... jitne chahe utne keys add kar sakte hain
 ]
 chatbot_api = GeminiAI(api_keys=GEMINI_API_KEYS)
